@@ -39,15 +39,16 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 		}
 	}
 
-	size_t foundnumber = 0;
+	size_t count = 0;
 	for (uint i = 0; i < images.size(); ++i)
 	{
+		// 调用OpenCV查找棋盘格角点，findChessboardCornersSB是能够直接获取棋盘格角点亚像素坐标的新函数。
 		bool found = cv::findChessboardCornersSB(images[i], cv::Size(w, h), imgPoints, 0);
 		if (found)
 		{
 			imgPntsVec.push_back(imgPoints);
 			objPntsVec.push_back(objPoints);
-			foundnumber++;
+			count++;
 			// 定义DEBUG宏，可以显示棋盘格检测结果
 			#ifdef DEBUG
 			cv::namedWindow("查找到的角点");
@@ -59,14 +60,14 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 		}
 	}
 
-	if (foundnumber < 3)
+	if (count < 3)
 	{
 		std::cout << "检测出的有效棋盘格标定板数量小于3！" << std::endl;
 		return false;
 	}
 	else
 	{
-		std::cout << "检测出有效棋盘格标定板数量为：" << foundnumber << std::endl;
+		std::cout << "检测出有效棋盘格标定板数量为：" << count << std::endl;
 		return true;
 	}
 }
@@ -76,6 +77,7 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 	cv::Mat homo;
 	const size_t number = imgPoints.size();
 	cv::Mat A(number * 2, 9, CV_64F);
+	// 给矩阵元素赋值
 	for (size_t i = 0; i < number; ++i)
 	{
 		double u = imgPoints[i].x;
@@ -103,20 +105,22 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 		A.at<double>(2 * i + 1, 7) = -v * y;
 		A.at<double>(2 * i + 1, 8) = -v;
 	}
+	// 求解Ax=0
 	cv::SVD::solveZ(A, homo);
 #ifdef DEBUG
 	std::cout << "单应矩阵：" << homo.t() << std::endl;
 #endif
+	// 单应矩阵的处理，保持最后一个元素为1，或者为正值。
 	//homo = homo / homo.at<double>(8);
 	if (homo.at<double>(8) < 0)
 		homo = -homo;
 	homo = homo.reshape(0, 3);
-
 	return homo;
 }
 
 void findAllHomography(const std::vector<std::vector<cv::Point2f>>& imgPntsVec, const std::vector<std::vector<cv::Point3f>>& objPntsVec, std::vector<cv::Mat>& homoVec)
 {
+	// 找到所有图像的单应矩阵
 	for (size_t i = 0; i < imgPntsVec.size(); ++i)
 	{
 		homoVec.push_back(findHomography(imgPntsVec[i], objPntsVec[i]));
@@ -125,8 +129,8 @@ void findAllHomography(const std::vector<std::vector<cv::Point2f>>& imgPntsVec, 
 
 void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 {
-
 	cv::Mat v(homoVec.size() * 2, 5, CV_64F);
+	// 给矩阵元素赋值
 	for (int i = 0; i < homoVec.size(); ++i)
 	{
 		double h11 = homoVec[i].at<double>(0, 0);
@@ -148,6 +152,7 @@ void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 		v.at<double>(i * 2 + 1, 3) = h13 * h12 + h12 * h13 - h23 * h22 - h22 * h23;
 		v.at<double>(i * 2 + 1, 4) = h13 * h13 - h23 * h23;
 	}
+	// 求解B矩阵，同样是Ax=0问题
 	cv::Mat B;
 	cv::SVD::solveZ(v, B);
 	std::cout << "B:" << B.t() << std::endl;
@@ -157,7 +162,7 @@ void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 	double B13 = B.at<double>(2);
 	double B23 = B.at<double>(3);
 	double B33 = B.at<double>(4);
-
+	// 从B矩阵恢复内参，假定skewness为零
 	double cx = -B13 / B11;
 	double cy = -B23 / B22;
 	double lmd = B33 - (B13 * B13 / B11 + B23 * B23 / B22);
@@ -166,7 +171,7 @@ void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 	std::cout << "内参：" << "fx: " << fx << " fy: " << fy
 		<< " cx: " << cx << " cy: " << cy
 		<< " lmd: " << lmd << std::endl;
-
+	// 给内参矩阵赋值
 	K.at<double>(0, 0) = fx;
 	K.at<double>(1, 1) = fy;
 	K.at<double>(0, 2) = cx;
@@ -196,9 +201,11 @@ void estimateExtrinsics(const std::vector<cv::Mat>& homoVec, const cv::Mat& K, s
 		R.at<double>(1, 2) = r3.at<double>(1);
 		R.at<double>(2, 2) = r3.at<double>(2);
 
+		// SVD分解，找到符合约束的旋转矩阵
 		cv::Mat U, W, VT;
 		cv::SVD::compute(R, W, U, VT);
 		R = U * VT;
+		// 旋转矩阵转轴角
 		cv::Mat aa;
 		Rodrigues(R, aa);
 		rvec.push_back(aa);
@@ -212,6 +219,7 @@ void estimateExtrinsics(const std::vector<cv::Mat>& homoVec, const cv::Mat& K, s
 
 ceres::Solver::Options setCeresOptions()
 {
+	// Ceres优化参数的配置
 	ceres::Solver::Options options;
 	options.linear_solver_type = ceres::DENSE_SCHUR;
 	options.minimizer_progress_to_stdout = true;
@@ -224,6 +232,8 @@ ceres::Solver::Options setCeresOptions()
 
 struct ReprojectionError
 {
+	// Ceres优化所需的结构体，定义重投影误差
+	// 构造函数
 	ReprojectionError(double u, double v, double x, double y, double z) : u(u), v(v), x(x), y(y), z(z) {};
 	template <typename T>
 	bool operator()(const T* const camera, const T* const pose, T* residuals) const
@@ -235,8 +245,9 @@ struct ReprojectionError
 		// camera[4,5,6,7,8] 畸变k1、k2、k3、p1、p2
 		T point[3] = { (T)x,(T)y,(T)z };
 		T p[3];
+		// 应用旋转矩阵给标定板坐标系中的点
 		ceres::AngleAxisRotatePoint(pose, point, p);
-
+		// 加上平移矩阵，成为相机坐标系中的点
 		p[0] += pose[3];
 		p[1] += pose[4];
 		p[2] += pose[5];
@@ -250,6 +261,7 @@ struct ReprojectionError
 		const T& p1 = camera[7];
 		const T& p2 = camera[8];
 
+		// 添加畸变
 		T r2 = xp * xp + yp * yp;
 		T r4 = r2 * r2;
 		T r6 = r2 * r4;
@@ -261,46 +273,51 @@ struct ReprojectionError
 		const T& cx = camera[2];
 		const T& cy = camera[3];
 
+		// 转换为像素坐标
 		T ud = fx * xd + cx;
 		T vd = fy * yd + cy;
 
+		// 重投影误差
 		residuals[0] = ud - (T)u;
 		residuals[1] = vd - (T)v;
 
 		return true;
 	}
 
-	//static ceres::CostFunction* create(const double u, const double v, const double x, const double y, const double z)
-	//{
-	//	return (new ceres::AutoDiffCostFunction<ReprojectionError, 2, 9, 6>(new ReprojectionError(u, v, x, y, z)));
-	//}
 	double u, v, x, y, z;
-
 };
 
 void ceresCalibrate(const std::vector<std::vector<cv::Point2f>> imgPntsVec, std::vector<std::vector<cv::Point3f>>& objPntsVec, cv::Mat& K, cv::Mat& D, std::vector<cv::Mat>& rvec, std::vector<cv::Mat>& tvec)
 {
 		std::cout << "Ceres优化" << std::endl;
-		double* x = new double[9]();
-		double* p = new double[6 * imgPntsVec.size()]();
-		x[0] = K.at<double>(0, 0);
-		x[1] = K.at<double>(1, 1);
-		x[2] = K.at<double>(0, 2);
-		x[3] = K.at<double>(1, 2);
-		x[4] = D.at<double>(0);
-		x[5] = D.at<double>(1);
-		x[6] = D.at<double>(3);
-		x[7] = D.at<double>(4);
-		x[8] = D.at<double>(2);
-
+		// 变量cam存储相机内参
+		// cam[0,1] 焦距
+		// cam[2,3] 主点
+		// cam[4,5,6,7,8] 畸变k1、k2、k3、p1、p2
+		double* cam = new double[9]();
+		// pose[0,1,2] 旋转
+		// pose[3,4,5] 平移
+		double* pose = new double[6 * imgPntsVec.size()]();
+		// 赋予初值，K为按照张正友标定法求解的内参，D为畸变
+		cam[0] = K.at<double>(0, 0);
+		cam[1] = K.at<double>(1, 1);
+		cam[2] = K.at<double>(0, 2);
+		cam[3] = K.at<double>(1, 2);
+		// 注意Opencv中D的畸变顺序为k1、k2、p1、p2、k3，为了方便和OpenCV比较，需要调换一下
+		cam[4] = D.at<double>(0);
+		cam[5] = D.at<double>(1);
+		cam[6] = D.at<double>(3);
+		cam[7] = D.at<double>(4);
+		cam[8] = D.at<double>(2);
+		// 赋予初值，rvec和tvec为张正友标定法求解的外参
 		for (size_t i = 0; i < imgPntsVec.size(); ++i)
 		{
-			p[6 * i + 0] = rvec[i].at<double>(0);
-			p[6 * i + 1] = rvec[i].at<double>(1);
-			p[6 * i + 2] = rvec[i].at<double>(2);
-			p[6 * i + 3] = tvec[i].at<double>(0);
-			p[6 * i + 4] = tvec[i].at<double>(1);
-			p[6 * i + 5] = tvec[i].at<double>(2);
+			pose[6 * i + 0] = rvec[i].at<double>(0);
+			pose[6 * i + 1] = rvec[i].at<double>(1);
+			pose[6 * i + 2] = rvec[i].at<double>(2);
+			pose[6 * i + 3] = tvec[i].at<double>(0);
+			pose[6 * i + 4] = tvec[i].at<double>(1);
+			pose[6 * i + 5] = tvec[i].at<double>(2);
 		}
 
 		ceres::Problem problem;
@@ -314,49 +331,55 @@ void ceresCalibrate(const std::vector<std::vector<cv::Point2f>> imgPntsVec, std:
 				double xx = objPntsVec[i][j].x;
 				double yy = objPntsVec[i][j].y;
 				double zz = objPntsVec[i][j].z;
+				// 添加残差块
 				ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<ReprojectionError, 2, 9, 6>(new ReprojectionError(uu, vv, xx, yy, zz));
-				problem.AddResidualBlock(cost_function, nullptr, x, p + 6 * i);
+				problem.AddResidualBlock(cost_function, nullptr, cam, pose + 6 * i);
 			}
 		}
+		// 设置优化选项
 		ceres::Solver::Options options = setCeresOptions();
-
 		ceres::Solver::Summary summary;
+		// 调用Ceres求解优化问题
 		ceres::Solve(options, &problem, &summary);
 		std::cout << summary.BriefReport() << "\n";
-		K.at<double>(0, 0) = x[0];
-		K.at<double>(1, 1) = x[1];
-		K.at<double>(0, 2) = x[2];
-		K.at<double>(1, 2) = x[3];
-		D.at<double>(0) = x[4];
-		D.at<double>(1) = x[5];
-		D.at<double>(2) = x[7];
-		D.at<double>(3) = x[8];
-		D.at<double>(4) = x[6];
+
+		// 优化结果赋值给K、D、rvec、tvec
+		K.at<double>(0, 0) = cam[0];
+		K.at<double>(1, 1) = cam[1];
+		K.at<double>(0, 2) = cam[2];
+		K.at<double>(1, 2) = cam[3];
+		D.at<double>(0) = cam[4];
+		D.at<double>(1) = cam[5];
+		D.at<double>(2) = cam[7];
+		D.at<double>(3) = cam[8];
+		D.at<double>(4) = cam[6];
 		for (size_t i = 0; i < imgPntsVec.size(); ++i)
 		{
-			rvec[i].at<double>(0) = p[6 * i + 0];
-			rvec[i].at<double>(1) = p[6 * i + 1];
-			rvec[i].at<double>(2) = p[6 * i + 2];
-			tvec[i].at<double>(0) = p[6 * i + 3];
-			tvec[i].at<double>(1) = p[6 * i + 4];
-			tvec[i].at<double>(2) = p[6 * i + 5];
+			rvec[i].at<double>(0) = pose[6 * i + 0];
+			rvec[i].at<double>(1) = pose[6 * i + 1];
+			rvec[i].at<double>(2) = pose[6 * i + 2];
+			tvec[i].at<double>(0) = pose[6 * i + 3];
+			tvec[i].at<double>(1) = pose[6 * i + 4];
+			tvec[i].at<double>(2) = pose[6 * i + 5];
 		}
-		delete[]p;
-		delete[]x;
+		delete[]pose;
+		delete[]cam;
 }
 
 void displayResults(const cv::Mat& K, const cv::Mat& D, const std::vector<cv::Mat>& rvec, const std::vector<cv::Mat>& tvec)
 {
-	std::cout << "Intrinsics Matrix: " << std::endl << K << std::endl;
-	std::cout << "Distortion: " << D << std::endl;
+	// 打印优化结果
+	std::cout << "内参矩阵: " << std::endl << K << std::endl;
+	std::cout << "畸变参数: " << D << std::endl;
 	for (size_t i = 0; i < rvec.size(); ++i)
 	{
-		std::cout << "Index: " << i << " Rotation: " << rvec[i].t() << " Translation: " << tvec[i].t() << std::endl;
+		std::cout << "图像索引: " << i << " 旋转矩阵: " << rvec[i].t() << " 平移矩阵: " << tvec[i].t() << std::endl;
 	}
 }
 
 cv::Point2f project3DPoint(const cv::Point3f& p3, const cv::Mat& r, const cv::Mat& t, const cv::Mat& a, const cv::Mat& d)
 {
+	// 按照相机模型，将3D点投影到2D像素坐标
 	cv::Mat p = cv::Mat(3, 1, CV_64F);
 	p.at<double>(0) = p3.x;
 	p.at<double>(1) = p3.y;
@@ -391,6 +414,7 @@ cv::Point2f project3DPoint(const cv::Point3f& p3, const cv::Mat& r, const cv::Ma
 
 void calculateReprojectionError(const std::vector<std::vector<cv::Point2f>> imgPntsVec, const std::vector<std::vector<cv::Point3f>>& objPntsVec, const cv::Mat& K, const cv::Mat& D, const std::vector<cv::Mat>& rvec, const std::vector<cv::Mat>& tvec)
 {
+	// 计算重投影误差
 	double error = 0;
 	size_t count = 0;
 	for (size_t i = 0; i < imgPntsVec.size(); ++i)
@@ -403,13 +427,14 @@ void calculateReprojectionError(const std::vector<std::vector<cv::Point2f>> imgP
 			++count;
 		}
 	}
-	std::cout << "valid points number: " << count << std::endl;
+	std::cout << "有效标定点数量: " << count << std::endl;
 	error /= count;
-	std::cout << "reprojection error: " << error << std::endl;
+	std::cout << "重投影误差: " << error << std::endl;
 }
 
 void cvCalibrate(const std::vector<std::vector<cv::Point2f>> imgPntsVec, const std::vector<std::vector<cv::Point3f>>& objPntsVec, cv::Mat& K, cv::Mat& D, std::vector<cv::Mat>& rvec, std::vector<cv::Mat>& tvec)
 {
+	// OpenCV标定
 	std::cout << "OpenCV标定" << std::endl;
 	cv::calibrateCamera(objPntsVec, imgPntsVec, cv::Size(640,480), K, D, rvec, tvec);
 }
@@ -446,8 +471,9 @@ int main()
 	std::vector<cv::Mat> rotationVector, translationVector;
 	estimateExtrinsics(homographyVector, K, rotationVector, translationVector);
 
-	// Ceres优化标定
+	// 畸变初值设为0
 	cv::Mat D = cv::Mat::zeros(1, 5, CV_64F);
+	// Ceres优化标定
 	ceresCalibrate(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
 	displayResults(K, D, rotationVector, translationVector);
 	calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
