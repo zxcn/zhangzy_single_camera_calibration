@@ -1,7 +1,8 @@
 # CMAKE版本要求
 cmake_minimum_required(VERSION 3.2)
 
-# 使用VCPKG安装的库
+# 由于是使用VCPKG安装的OpenCV和Ceres库，需要配置工具链路径。
+# 如果是使用其它方法安装的库，保证库可以被find_package找到即可，可注释掉此句。
 set(CMAKE_TOOLCHAIN_FILE "D:/Program Files/vcpkg/scripts/buildsystems/vcpkg.cmake")
 
 # 项目名
