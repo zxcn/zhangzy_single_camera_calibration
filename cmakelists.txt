@@ -1,0 +1,23 @@
+# CMAKE版本要求
+cmake_minimum_required(VERSION 3.2)
+
+# 使用VCPKG安装的库
+set(CMAKE_TOOLCHAIN_FILE "D:/Program Files/vcpkg/scripts/buildsystems/vcpkg.cmake")
+
+# 项目名
+project(single_camera_calibration)
+
+# 添加可执行文件
+add_executable(${PROJECT_NAME} main.cpp)
+
+# 查找并包含Ceres
+find_package(Ceres CONFIG REQUIRED)
+include_directories(${CERES_INCLUDE_DIRS})
+link_directories(${CERES_LIBRARY_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${CERES_LIBRARIES})
+
+# 查找并包含OpenCV
+find_package(OpenCV CONFIG REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+link_directories(${OpenV_LIBRARY_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${OpenCV_LIBRARIES})
