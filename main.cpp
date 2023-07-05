@@ -373,7 +373,7 @@ void displayResults(const cv::Mat& K, const cv::Mat& D, const std::vector<cv::Ma
 	std::cout << "畸变参数: " << D << std::endl;
 	for (size_t i = 0; i < rvec.size(); ++i)
 	{
-		std::cout << "图像索引: " << i << " 旋转矩阵: " << rvec[i].t() << " 平移矩阵: " << tvec[i].t() << std::endl;
+		std::cout << "图像索引: " << i << "，旋转矩阵: " << rvec[i].t() << "，平移矩阵: " << tvec[i].t() << std::endl;
 	}
 }
 
@@ -432,13 +432,6 @@ void calculateReprojectionError(const std::vector<std::vector<cv::Point2f>> imgP
 	std::cout << "重投影误差: " << error << std::endl;
 }
 
-void cvCalibrate(const std::vector<std::vector<cv::Point2f>> imgPntsVec, const std::vector<std::vector<cv::Point3f>>& objPntsVec, cv::Mat& K, cv::Mat& D, std::vector<cv::Mat>& rvec, std::vector<cv::Mat>& tvec)
-{
-	// OpenCV标定
-	std::cout << "OpenCV标定" << std::endl;
-	cv::calibrateCamera(objPntsVec, imgPntsVec, cv::Size(640,480), K, D, rvec, tvec);
-}
-
 int main()
 {
 	// 图片文件夹路径
@@ -479,7 +472,8 @@ int main()
 	calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
 
 	// OpenCV标定
-	cvCalibrate(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
+	std::cout << "OpenCV标定" << std::endl;
+	cv::calibrateCamera(objectPointsVector, imagePointsVector, imageData[0].size(), K, D, rotationVector, translationVector);
 	displayResults(K, D, rotationVector, translationVector);
 	calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
 	return 0;
