@@ -5,7 +5,6 @@
 
 //#define DEBUG
 
-
 bool readImages(const std::string& name, std::vector<cv::Mat>& images)
 {
 	// 查找路径下所有png图片，非递归。
@@ -223,10 +222,10 @@ ceres::Solver::Options setCeresOptions()
 	ceres::Solver::Options options;
 	options.linear_solver_type = ceres::DENSE_SCHUR;
 	options.minimizer_progress_to_stdout = true;
-	options.max_num_iterations = 50;
-	options.gradient_tolerance = 1e-10;
-	options.function_tolerance = 1e-10;
-	options.parameter_tolerance = 1e-8;
+	options.max_num_iterations = 50; // Ceres默认值
+	options.gradient_tolerance = 1e-10; // Ceres默认值
+	options.function_tolerance = 1e-10; // 从默认值1e-6调整至1e-10，可以多迭代几次，达到更小的重投影误差
+	options.parameter_tolerance = 1e-8; // Ceres默认值
 	return options;
 }
 
