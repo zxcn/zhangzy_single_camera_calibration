@@ -3,8 +3,6 @@
 #include<ceres/ceres.h>
 #include<ceres/rotation.h>
 
-//#define DEBUG
-
 bool readImages(const std::string& name, std::vector<cv::Mat>& images)
 {
 	// 查找路径下所有png图片，非递归。
@@ -48,14 +46,12 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 			imgPntsVec.push_back(imgPoints);
 			objPntsVec.push_back(objPoints);
 			count++;
-			// 定义DEBUG宏，可以显示棋盘格检测结果
-			#ifdef DEBUG
-			cv::namedWindow("查找到的角点");
-			cv::drawChessboardCorners(images[i], cv::Size(w, h), imgPoints, true);
-			cv::imshow("查找到的角点",images[i]);
-			cv::waitKey();
-			cv::destroyWindow("查找到的角点");
-			#endif
+			// 显示棋盘格检测结果
+			//cv::namedWindow("查找到的角点");
+			//cv::drawChessboardCorners(images[i], cv::Size(w, h), imgPoints, true);
+			//cv::imshow("查找到的角点",images[i]);
+			//cv::waitKey();
+			//cv::destroyWindow("查找到的角点");
 		}
 	}
 
@@ -70,6 +66,7 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 		return true;
 	}
 }
+
 
 cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vector<cv::Point3f>& objPoints)
 {
@@ -106,14 +103,104 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 	}
 	// 求解Ax=0
 	cv::SVD::solveZ(A, homo);
-#ifdef DEBUG
-	std::cout << "单应矩阵：" << homo.t() << std::endl;
-#endif
+	//std::cout << "单应矩阵：" << homo.t() << std::endl;
 	// 单应矩阵的处理，保持最后一个元素为1，或者为正值。
-	//homo = homo / homo.at<double>(8);
-	if (homo.at<double>(8) < 0)
-		homo = -homo;
+	homo = homo / homo.at<double>(8);
+	//if (homo.at<double>(8) < 0)
+	//	homo = -homo;
 	homo = homo.reshape(0, 3);
+	//std::cout << homo << std::endl;
+	return homo;
+}
+
+// 对点进行归一化，使求解更稳定
+template<typename T>
+void normalize(T& points, cv::Mat& N)
+{
+	double xmean = 0, ymean = 0, xstd = 0, ystd = 0;
+	double num = points.size();
+	// 计算均值
+	for (size_t i = 0; i < points.size(); ++i)
+	{
+		xmean += points[i].x;
+		ymean += points[i].y;
+	}
+	xmean /= num;
+	ymean /= num;
+	//std::cout << xmean << std::endl;
+	//std::cout << ymean << std::endl;
+	// 计算标准差
+	for (size_t i = 0; i < points.size(); ++i)
+	{
+		xstd += (points[i].x - xmean) * (points[i].x - xmean);
+		ystd += (points[i].y - xmean) * (points[i].y - xmean);
+	}
+	xstd = cv::sqrt(xstd / num);
+	ystd = cv::sqrt(ystd / num);
+	//std::cout << xstd << std::endl;
+	//std::cout << ystd << std::endl;
+	// 点云归一化
+	for (size_t i = 0; i < points.size(); ++i)
+	{
+		points[i].x = (points[i].x - xmean) / xstd * cv::sqrt(2);
+		points[i].y = (points[i].y - ymean) / ystd * cv::sqrt(2);
+	}
+	N.at<double>(0, 0) = 1 / xstd * cv::sqrt(2);
+	N.at<double>(0, 2) = -xmean / xstd * cv::sqrt(2);
+	N.at<double>(1, 1) = 1 / ystd * cv::sqrt(2);
+	N.at<double>(1, 2) = -ymean / ystd * cv::sqrt(2);
+	//std::cout << N << std::endl;
+}
+//求解单应，带归一化
+cv::Mat findHomographyWithNormalization(const std::vector<cv::Point2f>& imgPoints, const std::vector<cv::Point3f>& objPoints)
+{
+	cv::Mat homo;
+	const size_t number = imgPoints.size();
+	cv::Mat A(number * 2, 9, CV_64F);
+	// 物点归一化
+	std::vector<cv::Point3f> objNPnts{objPoints};
+	cv::Mat No = cv::Mat::eye(3, 3, CV_64F);
+	normalize(objNPnts, No);
+	// 图像点归一化
+	std::vector<cv::Point2f> imgNPnts{imgPoints};
+	cv::Mat Ni = cv::Mat::eye(3, 3, CV_64F);
+	normalize(imgNPnts, Ni);
+
+	// 给矩阵元素赋值
+	for (size_t i = 0; i < number; ++i)
+	{
+		double u = imgNPnts[i].x;
+		double v = imgNPnts[i].y;
+		double x = objNPnts[i].x;
+		double y = objNPnts[i].y;
+
+		A.at<double>(2 * i, 0) = x;
+		A.at<double>(2 * i, 1) = y;
+		A.at<double>(2 * i, 2) = 1;
+		A.at<double>(2 * i, 3) = 0;
+		A.at<double>(2 * i, 4) = 0;
+		A.at<double>(2 * i, 5) = 0;
+		A.at<double>(2 * i, 6) = -u * x;
+		A.at<double>(2 * i, 7) = -u * y;
+		A.at<double>(2 * i, 8) = -u;
+
+		A.at<double>(2 * i + 1, 0) = 0;
+		A.at<double>(2 * i + 1, 1) = 0;
+		A.at<double>(2 * i + 1, 2) = 0;
+		A.at<double>(2 * i + 1, 3) = x;
+		A.at<double>(2 * i + 1, 4) = y;
+		A.at<double>(2 * i + 1, 5) = 1;
+		A.at<double>(2 * i + 1, 6) = -v * x;
+		A.at<double>(2 * i + 1, 7) = -v * y;
+		A.at<double>(2 * i + 1, 8) = -v;
+	}
+	// 求解Ax=0
+	cv::SVD::solveZ(A, homo);
+	homo = homo.reshape(0, 3);
+	homo = Ni.inv() * homo * No;
+	// 单应矩阵的处理，保持最后一个元素为1，或者为正值。
+	homo = homo / homo.at<double>(8);
+	//std::cout << homo << std::endl;
 	return homo;
 }
 
@@ -122,6 +209,7 @@ void findAllHomography(const std::vector<std::vector<cv::Point2f>>& imgPntsVec, 
 	// 找到所有图像的单应矩阵
 	for (size_t i = 0; i < imgPntsVec.size(); ++i)
 	{
+		//homoVec.push_back(findHomographyWithNormalization(imgPntsVec[i], objPntsVec[i]));
 		homoVec.push_back(findHomography(imgPntsVec[i], objPntsVec[i]));
 	}
 }
@@ -460,20 +548,20 @@ int main()
 	estimateIntrinsics(homographyVector, K);
 
 	// 估计外参
-	std::vector<cv::Mat> rotationVector, translationVector;
-	estimateExtrinsics(homographyVector, K, rotationVector, translationVector);
+	//std::vector<cv::Mat> rotationVector, translationVector;
+	//estimateExtrinsics(homographyVector, K, rotationVector, translationVector);
 
-	// 畸变初值设为0
-	cv::Mat D = cv::Mat::zeros(1, 5, CV_64F);
-	// Ceres优化标定
-	ceresCalibrate(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
-	displayResults(K, D, rotationVector, translationVector);
-	calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
+	//// 畸变初值设为0
+	//cv::Mat D = cv::Mat::zeros(1, 5, CV_64F);
+	//// Ceres优化标定
+	//ceresCalibrate(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
+	//displayResults(K, D, rotationVector, translationVector);
+	//calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
 
-	// OpenCV标定
-	std::cout << "OpenCV标定" << std::endl;
-	cv::calibrateCamera(objectPointsVector, imagePointsVector, imageData[0].size(), K, D, rotationVector, translationVector);
-	displayResults(K, D, rotationVector, translationVector);
-	calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
+	//// OpenCV标定
+	//std::cout << "OpenCV标定" << std::endl;
+	//cv::calibrateCamera(objectPointsVector, imagePointsVector, imageData[0].size(), K, D, rotationVector, translationVector);
+	//displayResults(K, D, rotationVector, translationVector);
+	//calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
 	return 0;
 }
