@@ -3,14 +3,17 @@
 #include<ceres/ceres.h>
 #include<ceres/rotation.h>
 
-bool readImages(const std::string& name, std::vector<cv::Mat>& images)
+bool readImages(const std::string& pattern, std::vector<cv::Mat>& images)
 {
 	// 查找路径下所有png图片，非递归。
 	std::vector<std::string> list;
-	cv::glob(name, list);
+	cv::glob(pattern, list);
 
 	if (list.empty())
+	{ 
+		std::cout << "未在路径下找到PNG格式图片!" << std::endl;
 		return false;
+	}
 	else
 	{
 		std::cout << "找到图片数量：" << list.size() << std::endl;
@@ -28,6 +31,7 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 {
 	std::vector<cv::Point2f> imgPoints;
 	std::vector<cv::Point3f> objPoints;
+	// 生成物体坐标系中的角点坐标vector
 	for (size_t i = 0; i < h; ++i)
 	{
 		for (size_t j = 0; j < w; ++j)
@@ -39,7 +43,7 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 	size_t count = 0;
 	for (uint i = 0; i < images.size(); ++i)
 	{
-		// 调用OpenCV查找棋盘格角点，findChessboardCornersSB是能够直接获取棋盘格角点亚像素坐标的新函数。
+		// 调用OpenCV查找棋盘格角点，findChessboardCornersSB是能够直接获取棋盘格角点亚像素坐标的函数。
 		bool found = cv::findChessboardCornersSB(images[i], cv::Size(w, h), imgPoints, 0);
 		if (found)
 		{
@@ -67,13 +71,12 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 	}
 }
 
-
 cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vector<cv::Point3f>& objPoints)
 {
 	cv::Mat homo;
 	const size_t number = imgPoints.size();
 	cv::Mat A(number * 2, 9, CV_64F);
-	// 给矩阵元素赋值
+	// 构造A矩阵，用于求解单应
 	for (size_t i = 0; i < number; ++i)
 	{
 		double u = imgPoints[i].x;
@@ -104,8 +107,9 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 	// 求解Ax=0
 	cv::SVD::solveZ(A, homo);
 	//std::cout << "单应矩阵：" << homo.t() << std::endl;
-	// 单应矩阵的处理，保持最后一个元素为1，或者为正值。
+	// 单应矩阵的处理，保持最后一个元素为1（或者为正）
 	homo = homo / homo.at<double>(8);
+	// 单应矩阵的处理，保持最后一个元素为正，意味着标定板原点在相机前方。
 	//if (homo.at<double>(8) < 0)
 	//	homo = -homo;
 	homo = homo.reshape(0, 3);
@@ -113,12 +117,12 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 	return homo;
 }
 
-// 对点进行归一化，使求解更稳定
+// 对点进行归一化，使求解更稳定。使用模板类接收vector<Point2f>或vector<Point3f>
 template<typename T>
 void normalize(T& points, cv::Mat& N)
 {
 	double xmean = 0, ymean = 0, xstd = 0, ystd = 0;
-	double num = points.size();
+	double num = (double)points.size();
 	// 计算均值
 	for (size_t i = 0; i < points.size(); ++i)
 	{
@@ -166,7 +170,7 @@ cv::Mat findHomographyWithNormalization(const std::vector<cv::Point2f>& imgPoint
 	cv::Mat Ni = cv::Mat::eye(3, 3, CV_64F);
 	normalize(imgNPnts, Ni);
 
-	// 给矩阵元素赋值
+	// 构造A矩阵，用于求解单应
 	for (size_t i = 0; i < number; ++i)
 	{
 		double u = imgNPnts[i].x;
@@ -209,8 +213,8 @@ void findAllHomography(const std::vector<std::vector<cv::Point2f>>& imgPntsVec, 
 	// 找到所有图像的单应矩阵
 	for (size_t i = 0; i < imgPntsVec.size(); ++i)
 	{
-		//homoVec.push_back(findHomographyWithNormalization(imgPntsVec[i], objPntsVec[i]));
-		homoVec.push_back(findHomography(imgPntsVec[i], objPntsVec[i]));
+		homoVec.push_back(findHomographyWithNormalization(imgPntsVec[i], objPntsVec[i]));
+		//homoVec.push_back(findHomography(imgPntsVec[i], objPntsVec[i]));
 	}
 }
 
@@ -297,10 +301,9 @@ void estimateExtrinsics(const std::vector<cv::Mat>& homoVec, const cv::Mat& K, s
 		Rodrigues(R, aa);
 		rvec.push_back(aa);
 		tvec.push_back(t);
-#ifdef DEBUG
-		std::cout << "r: " << aa.t() << std::endl;
-		std::cout << "t: " << t.t() << std::endl;
-#endif
+		//std::cout << "r: " << aa.t() << std::endl;
+		//std::cout << "t: " << t.t() << std::endl;
+
 	}
 }
 
@@ -408,7 +411,6 @@ void ceresCalibrate(const std::vector<std::vector<cv::Point2f>> imgPntsVec, std:
 		}
 
 		ceres::Problem problem;
-
 		for (size_t i = 0; i < imgPntsVec.size(); ++i)
 		{
 			for (size_t j = 0; j < imgPntsVec[i].size(); ++j)
@@ -449,8 +451,8 @@ void ceresCalibrate(const std::vector<std::vector<cv::Point2f>> imgPntsVec, std:
 			tvec[i].at<double>(1) = pose[6 * i + 4];
 			tvec[i].at<double>(2) = pose[6 * i + 5];
 		}
-		delete[]pose;
-		delete[]cam;
+		delete[] pose;
+		delete[] cam;
 }
 
 void displayResults(const cv::Mat& K, const cv::Mat& D, const std::vector<cv::Mat>& rvec, const std::vector<cv::Mat>& tvec)
@@ -548,20 +550,20 @@ int main()
 	estimateIntrinsics(homographyVector, K);
 
 	// 估计外参
-	//std::vector<cv::Mat> rotationVector, translationVector;
-	//estimateExtrinsics(homographyVector, K, rotationVector, translationVector);
+	std::vector<cv::Mat> rotationVector, translationVector;
+	estimateExtrinsics(homographyVector, K, rotationVector, translationVector);
 
-	//// 畸变初值设为0
-	//cv::Mat D = cv::Mat::zeros(1, 5, CV_64F);
-	//// Ceres优化标定
-	//ceresCalibrate(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
-	//displayResults(K, D, rotationVector, translationVector);
-	//calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
+	// 畸变初值设为0
+	cv::Mat D = cv::Mat::zeros(1, 5, CV_64F);
+	// Ceres优化标定
+	ceresCalibrate(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
+	displayResults(K, D, rotationVector, translationVector);
+	calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
 
-	//// OpenCV标定
-	//std::cout << "OpenCV标定" << std::endl;
-	//cv::calibrateCamera(objectPointsVector, imagePointsVector, imageData[0].size(), K, D, rotationVector, translationVector);
-	//displayResults(K, D, rotationVector, translationVector);
-	//calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
+	// OpenCV标定
+	std::cout << "OpenCV标定" << std::endl;
+	cv::calibrateCamera(objectPointsVector, imagePointsVector, imageData[0].size(), K, D, rotationVector, translationVector);
+	displayResults(K, D, rotationVector, translationVector);
+	calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
 	return 0;
 }
