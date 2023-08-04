@@ -2,6 +2,7 @@
 #include<opencv2/opencv.hpp>
 #include<ceres/ceres.h>
 #include<ceres/rotation.h>
+#include<fstream>
 
 bool readImages(const std::string& pattern, std::vector<cv::Mat>& images)
 {
@@ -322,7 +323,7 @@ ceres::Solver::Options setCeresOptions()
 
 struct ReprojectionError
 {
-	// Ceres优化所需的结构体，定义重投影误差
+	// Ceres优化所需的functor，定义重投影误差
 	// 构造函数
 	ReprojectionError(double u, double v, double x, double y, double z) : u(u), v(v), x(x), y(y), z(z) {};
 	template <typename T>
@@ -396,9 +397,9 @@ void ceresCalibrate(const std::vector<std::vector<cv::Point2f>> imgPntsVec, std:
 		// 注意Opencv中D的畸变顺序为k1、k2、p1、p2、k3，为了方便和OpenCV比较，需要调换一下
 		cam[4] = D.at<double>(0);
 		cam[5] = D.at<double>(1);
-		cam[6] = D.at<double>(3);
-		cam[7] = D.at<double>(4);
-		cam[8] = D.at<double>(2);
+		cam[6] = D.at<double>(4);
+		cam[7] = D.at<double>(2);
+		cam[8] = D.at<double>(3);
 		// 赋予初值，rvec和tvec为张正友标定法求解的外参
 		for (size_t i = 0; i < imgPntsVec.size(); ++i)
 		{
