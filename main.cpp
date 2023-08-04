@@ -2,7 +2,6 @@
 #include<opencv2/opencv.hpp>
 #include<ceres/ceres.h>
 #include<ceres/rotation.h>
-#include<fstream>
 
 bool readImages(const std::string& pattern, std::vector<cv::Mat>& images)
 {
