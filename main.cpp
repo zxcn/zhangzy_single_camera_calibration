@@ -5,22 +5,22 @@
 
 bool readImages(const std::string& pattern, std::vector<cv::Mat>& images)
 {
-	// æŸ¥æ‰¾è·¯å¾„ä¸‹æ‰€æœ‰pngå›¾ç‰‡ï¼Œéé€’å½’ã€‚
+	// ²éÕÒÂ·¾¶ÏÂËùÓĞpngÍ¼Æ¬£¬·Çµİ¹é¡£
 	std::vector<std::string> list;
 	cv::glob(pattern, list);
 
 	if (list.empty())
 	{ 
-		std::cout << "æœªåœ¨è·¯å¾„ä¸‹æ‰¾åˆ°PNGæ ¼å¼å›¾ç‰‡!" << std::endl;
+		std::cout << "Î´ÔÚÂ·¾¶ÏÂÕÒµ½PNG¸ñÊ½Í¼Æ¬!" << std::endl;
 		return false;
 	}
 	else
 	{
-		std::cout << "æ‰¾åˆ°å›¾ç‰‡æ•°é‡ï¼š" << list.size() << std::endl;
+		std::cout << "ÕÒµ½Í¼Æ¬ÊıÁ¿£º" << list.size() << std::endl;
 		for (size_t i = 0; i < list.size(); ++i)
 		{
 			std::cout << list[i] << std::endl;
-			// è¯»å–å›¾ç‰‡è‡³vector<Mat>
+			// ¶ÁÈ¡Í¼Æ¬ÖÁvector<Mat>
 			images.push_back(cv::imread(list[i], cv::IMREAD_UNCHANGED));
 		}
 		return true;
@@ -31,7 +31,7 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 {
 	std::vector<cv::Point2f> imgPoints;
 	std::vector<cv::Point3f> objPoints;
-	// ç”Ÿæˆç‰©ä½“åæ ‡ç³»ä¸­çš„è§’ç‚¹åæ ‡vector
+	// Éú³ÉÎïÌå×ø±êÏµÖĞµÄ½Çµã×ø±êvector
 	for (size_t i = 0; i < h; ++i)
 	{
 		for (size_t j = 0; j < w; ++j)
@@ -43,30 +43,30 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 	size_t count = 0;
 	for (uint i = 0; i < images.size(); ++i)
 	{
-		// è°ƒç”¨OpenCVæŸ¥æ‰¾æ£‹ç›˜æ ¼è§’ç‚¹ï¼ŒfindChessboardCornersSBæ˜¯èƒ½å¤Ÿç›´æ¥è·å–æ£‹ç›˜æ ¼è§’ç‚¹äºšåƒç´ åæ ‡çš„å‡½æ•°ã€‚
+		// µ÷ÓÃOpenCV²éÕÒÆåÅÌ¸ñ½Çµã£¬findChessboardCornersSBÊÇÄÜ¹»Ö±½Ó»ñÈ¡ÆåÅÌ¸ñ½ÇµãÑÇÏñËØ×ø±êµÄº¯Êı¡£
 		bool found = cv::findChessboardCornersSB(images[i], cv::Size(w, h), imgPoints, 0);
 		if (found)
 		{
 			imgPntsVec.push_back(imgPoints);
 			objPntsVec.push_back(objPoints);
 			count++;
-			// æ˜¾ç¤ºæ£‹ç›˜æ ¼æ£€æµ‹ç»“æœ
-			//cv::namedWindow("æŸ¥æ‰¾åˆ°çš„è§’ç‚¹");
+			// ÏÔÊ¾ÆåÅÌ¸ñ¼ì²â½á¹û
+			//cv::namedWindow("²éÕÒµ½µÄ½Çµã");
 			//cv::drawChessboardCorners(images[i], cv::Size(w, h), imgPoints, true);
-			//cv::imshow("æŸ¥æ‰¾åˆ°çš„è§’ç‚¹",images[i]);
+			//cv::imshow("²éÕÒµ½µÄ½Çµã",images[i]);
 			//cv::waitKey();
-			//cv::destroyWindow("æŸ¥æ‰¾åˆ°çš„è§’ç‚¹");
+			//cv::destroyWindow("²éÕÒµ½µÄ½Çµã");
 		}
 	}
 
 	if (count < 3)
 	{
-		std::cout << "æ£€æµ‹å‡ºçš„æœ‰æ•ˆæ£‹ç›˜æ ¼æ ‡å®šæ¿æ•°é‡å°äº3ï¼" << std::endl;
+		std::cout << "¼ì²â³öµÄÓĞĞ§ÆåÅÌ¸ñ±ê¶¨°åÊıÁ¿Ğ¡ÓÚ3£¡" << std::endl;
 		return false;
 	}
 	else
 	{
-		std::cout << "æ£€æµ‹å‡ºæœ‰æ•ˆæ£‹ç›˜æ ¼æ ‡å®šæ¿æ•°é‡ä¸ºï¼š" << count << std::endl;
+		std::cout << "¼ì²â³öÓĞĞ§ÆåÅÌ¸ñ±ê¶¨°åÊıÁ¿Îª£º" << count << std::endl;
 		return true;
 	}
 }
@@ -76,7 +76,7 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 	cv::Mat homo;
 	const size_t number = imgPoints.size();
 	cv::Mat A(number * 2, 9, CV_64F);
-	// æ„é€ AçŸ©é˜µï¼Œç”¨äºæ±‚è§£å•åº”
+	// ¹¹ÔìA¾ØÕó£¬ÓÃÓÚÇó½âµ¥Ó¦
 	for (size_t i = 0; i < number; ++i)
 	{
 		double u = imgPoints[i].x;
@@ -104,12 +104,12 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 		A.at<double>(2 * i + 1, 7) = -v * y;
 		A.at<double>(2 * i + 1, 8) = -v;
 	}
-	// æ±‚è§£Ax=0
+	// Çó½âAx=0
 	cv::SVD::solveZ(A, homo);
-	//std::cout << "å•åº”çŸ©é˜µï¼š" << homo.t() << std::endl;
-	// å•åº”çŸ©é˜µçš„å¤„ç†ï¼Œä¿æŒæœ€åä¸€ä¸ªå…ƒç´ ä¸º1ï¼ˆæˆ–è€…ä¸ºæ­£ï¼‰
+	//std::cout << "µ¥Ó¦¾ØÕó£º" << homo.t() << std::endl;
+	// µ¥Ó¦¾ØÕóµÄ´¦Àí£¬±£³Ö×îºóÒ»¸öÔªËØÎª1£¨»òÕßÎªÕı£©
 	homo = homo / homo.at<double>(8);
-	// å•åº”çŸ©é˜µçš„å¤„ç†ï¼Œä¿æŒæœ€åä¸€ä¸ªå…ƒç´ ä¸ºæ­£ï¼Œæ„å‘³ç€æ ‡å®šæ¿åŸç‚¹åœ¨ç›¸æœºå‰æ–¹ã€‚
+	// µ¥Ó¦¾ØÕóµÄ´¦Àí£¬±£³Ö×îºóÒ»¸öÔªËØÎªÕı£¬ÒâÎ¶×Å±ê¶¨°åÔ­µãÔÚÏà»úÇ°·½¡£
 	//if (homo.at<double>(8) < 0)
 	//	homo = -homo;
 	homo = homo.reshape(0, 3);
@@ -117,13 +117,13 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 	return homo;
 }
 
-// å¯¹ç‚¹è¿›è¡Œå½’ä¸€åŒ–ï¼Œä½¿æ±‚è§£æ›´ç¨³å®šã€‚ä½¿ç”¨æ¨¡æ¿ç±»æ¥æ”¶vector<Point2f>æˆ–vector<Point3f>
+// ¶Ôµã½øĞĞ¹éÒ»»¯£¬Ê¹Çó½â¸üÎÈ¶¨¡£Ê¹ÓÃÄ£°åÀà½ÓÊÕvector<Point2f>»òvector<Point3f>
 template<typename T>
 void normalize(T& points, cv::Mat& N)
 {
 	double xmean = 0, ymean = 0, xstd = 0, ystd = 0;
 	double num = (double)points.size();
-	// è®¡ç®—å‡å€¼
+	// ¼ÆËã¾ùÖµ
 	for (size_t i = 0; i < points.size(); ++i)
 	{
 		xmean += points[i].x;
@@ -133,7 +133,7 @@ void normalize(T& points, cv::Mat& N)
 	ymean /= num;
 	//std::cout << xmean << std::endl;
 	//std::cout << ymean << std::endl;
-	// è®¡ç®—æ ‡å‡†å·®
+	// ¼ÆËã±ê×¼²î
 	for (size_t i = 0; i < points.size(); ++i)
 	{
 		xstd += (points[i].x - xmean) * (points[i].x - xmean);
@@ -143,7 +143,7 @@ void normalize(T& points, cv::Mat& N)
 	ystd = cv::sqrt(ystd / num);
 	//std::cout << xstd << std::endl;
 	//std::cout << ystd << std::endl;
-	// ç‚¹äº‘å½’ä¸€åŒ–
+	// µãÔÆ¹éÒ»»¯
 	for (size_t i = 0; i < points.size(); ++i)
 	{
 		points[i].x = (points[i].x - xmean) / xstd * cv::sqrt(2);
@@ -155,22 +155,22 @@ void normalize(T& points, cv::Mat& N)
 	N.at<double>(1, 2) = -ymean / ystd * cv::sqrt(2);
 	//std::cout << N << std::endl;
 }
-//æ±‚è§£å•åº”ï¼Œå¸¦å½’ä¸€åŒ–
+//Çó½âµ¥Ó¦£¬´ø¹éÒ»»¯
 cv::Mat findHomographyWithNormalization(const std::vector<cv::Point2f>& imgPoints, const std::vector<cv::Point3f>& objPoints)
 {
 	cv::Mat homo;
 	const size_t number = imgPoints.size();
 	cv::Mat A(number * 2, 9, CV_64F);
-	// ç‰©ç‚¹å½’ä¸€åŒ–
+	// Îïµã¹éÒ»»¯
 	std::vector<cv::Point3f> objNPnts{objPoints};
 	cv::Mat No = cv::Mat::eye(3, 3, CV_64F);
 	normalize(objNPnts, No);
-	// å›¾åƒç‚¹å½’ä¸€åŒ–
+	// Í¼Ïñµã¹éÒ»»¯
 	std::vector<cv::Point2f> imgNPnts{imgPoints};
 	cv::Mat Ni = cv::Mat::eye(3, 3, CV_64F);
 	normalize(imgNPnts, Ni);
 
-	// æ„é€ AçŸ©é˜µï¼Œç”¨äºæ±‚è§£å•åº”
+	// ¹¹ÔìA¾ØÕó£¬ÓÃÓÚÇó½âµ¥Ó¦
 	for (size_t i = 0; i < number; ++i)
 	{
 		double u = imgNPnts[i].x;
@@ -198,11 +198,11 @@ cv::Mat findHomographyWithNormalization(const std::vector<cv::Point2f>& imgPoint
 		A.at<double>(2 * i + 1, 7) = -v * y;
 		A.at<double>(2 * i + 1, 8) = -v;
 	}
-	// æ±‚è§£Ax=0
+	// Çó½âAx=0
 	cv::SVD::solveZ(A, homo);
 	homo = homo.reshape(0, 3);
 	homo = Ni.inv() * homo * No;
-	// å•åº”çŸ©é˜µçš„å¤„ç†ï¼Œä¿æŒæœ€åä¸€ä¸ªå…ƒç´ ä¸º1ï¼Œæˆ–è€…ä¸ºæ­£å€¼ã€‚
+	// µ¥Ó¦¾ØÕóµÄ´¦Àí£¬±£³Ö×îºóÒ»¸öÔªËØÎª1£¬»òÕßÎªÕıÖµ¡£
 	homo = homo / homo.at<double>(8);
 	//std::cout << homo << std::endl;
 	return homo;
@@ -210,7 +210,7 @@ cv::Mat findHomographyWithNormalization(const std::vector<cv::Point2f>& imgPoint
 
 void findAllHomography(const std::vector<std::vector<cv::Point2f>>& imgPntsVec, const std::vector<std::vector<cv::Point3f>>& objPntsVec, std::vector<cv::Mat>& homoVec)
 {
-	// æ‰¾åˆ°æ‰€æœ‰å›¾åƒçš„å•åº”çŸ©é˜µ
+	// ÕÒµ½ËùÓĞÍ¼ÏñµÄµ¥Ó¦¾ØÕó
 	for (size_t i = 0; i < imgPntsVec.size(); ++i)
 	{
 		homoVec.push_back(findHomographyWithNormalization(imgPntsVec[i], objPntsVec[i]));
@@ -221,29 +221,29 @@ void findAllHomography(const std::vector<std::vector<cv::Point2f>>& imgPntsVec, 
 void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 {
 	cv::Mat v(homoVec.size() * 2, 5, CV_64F);
-	// ç»™çŸ©é˜µå…ƒç´ èµ‹å€¼
+	// ¸ø¾ØÕóÔªËØ¸³Öµ
 	for (int i = 0; i < homoVec.size(); ++i)
 	{
 		double h11 = homoVec[i].at<double>(0, 0);
-		double h12 = homoVec[i].at<double>(1, 0);
-		double h13 = homoVec[i].at<double>(2, 0);
-		double h21 = homoVec[i].at<double>(0, 1);
+		double h21 = homoVec[i].at<double>(1, 0);
+		double h31 = homoVec[i].at<double>(2, 0);
+		double h12 = homoVec[i].at<double>(0, 1);
 		double h22 = homoVec[i].at<double>(1, 1);
-		double h23 = homoVec[i].at<double>(2, 1);
+		double h32 = homoVec[i].at<double>(2, 1);
 
-		v.at<double>(i * 2, 0) = h11 * h21;
-		v.at<double>(i * 2, 1) = h12 * h22;
-		v.at<double>(i * 2, 2) = h13 * h21 + h11 * h23;
-		v.at<double>(i * 2, 3) = h13 * h22 + h12 * h23;
-		v.at<double>(i * 2, 4) = h13 * h23;
+		v.at<double>(i * 2, 0) = h11 * h12;
+		v.at<double>(i * 2, 1) = h21 * h22;
+		v.at<double>(i * 2, 2) = h31 * h12 + h11 * h32;
+		v.at<double>(i * 2, 3) = h31 * h22 + h21 * h32;
+		v.at<double>(i * 2, 4) = h31 * h32;
 
-		v.at<double>(i * 2 + 1, 0) = h11 * h11 - h21 * h21;
-		v.at<double>(i * 2 + 1, 1) = h12 * h12 - h22 * h22;
-		v.at<double>(i * 2 + 1, 2) = h13 * h11 + h11 * h13 - h23 * h21 - h21 * h23;
-		v.at<double>(i * 2 + 1, 3) = h13 * h12 + h12 * h13 - h23 * h22 - h22 * h23;
-		v.at<double>(i * 2 + 1, 4) = h13 * h13 - h23 * h23;
+		v.at<double>(i * 2 + 1, 0) = h11 * h11 - h12 * h12;
+		v.at<double>(i * 2 + 1, 1) = h21 * h21 - h22 * h22;
+		v.at<double>(i * 2 + 1, 2) = 2 * h11 * h31 - 2 * h12 * h32;
+		v.at<double>(i * 2 + 1, 3) = 2 * h21 * h31 - 2 * h22 * h32;
+		v.at<double>(i * 2 + 1, 4) = h31 * h31 - h32 * h32;
 	}
-	// æ±‚è§£BçŸ©é˜µï¼ŒåŒæ ·æ˜¯Ax=0é—®é¢˜
+	// Çó½âB¾ØÕó£¬Í¬ÑùÊÇAx=0ÎÊÌâ
 	cv::Mat B;
 	cv::SVD::solveZ(v, B);
 	std::cout << "B:" << B.t() << std::endl;
@@ -253,16 +253,16 @@ void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 	double B13 = B.at<double>(2);
 	double B23 = B.at<double>(3);
 	double B33 = B.at<double>(4);
-	// ä»BçŸ©é˜µæ¢å¤å†…å‚ï¼Œå‡å®šskewnessä¸ºé›¶
+	// ´ÓB¾ØÕó»Ö¸´ÄÚ²Î£¬¼Ù¶¨skewnessÎªÁã
 	double cx = -B13 / B11;
 	double cy = -B23 / B22;
 	double lmd = B33 - (B13 * B13 / B11 + B23 * B23 / B22);
 	double fx = sqrt(lmd / B11);
 	double fy = sqrt(lmd / B22);
-	std::cout << "å†…å‚ï¼š" << "fx: " << fx << " fy: " << fy
+	std::cout << "ÄÚ²Î£º" << "fx: " << fx << " fy: " << fy
 		<< " cx: " << cx << " cy: " << cy
 		<< " lmd: " << lmd << std::endl;
-	// ç»™å†…å‚çŸ©é˜µèµ‹å€¼
+	// ¸øÄÚ²Î¾ØÕó¸³Öµ
 	K.at<double>(0, 0) = fx;
 	K.at<double>(1, 1) = fy;
 	K.at<double>(0, 2) = cx;
@@ -292,13 +292,13 @@ void estimateExtrinsics(const std::vector<cv::Mat>& homoVec, const cv::Mat& K, s
 		R.at<double>(1, 2) = r3.at<double>(1);
 		R.at<double>(2, 2) = r3.at<double>(2);
 
-		// SVDåˆ†è§£ï¼Œæ‰¾åˆ°ç¬¦åˆçº¦æŸçš„æ—‹è½¬çŸ©é˜µ
+		// SVD·Ö½â£¬ÕÒµ½·ûºÏÔ¼ÊøµÄĞı×ª¾ØÕó
 		cv::Mat U, W, VT;
 		cv::SVD::compute(R, W, U, VT);
 		R = U * VT;
-		// æ—‹è½¬çŸ©é˜µè½¬è½´è§’
+		// Ğı×ª¾ØÕó×ªÖá½Ç
 		cv::Mat aa;
-		Rodrigues(R, aa);
+		cv::Rodrigues(R, aa);
 		rvec.push_back(aa);
 		tvec.push_back(t);
 		//std::cout << "r: " << aa.t() << std::endl;
@@ -309,35 +309,35 @@ void estimateExtrinsics(const std::vector<cv::Mat>& homoVec, const cv::Mat& K, s
 
 ceres::Solver::Options setCeresOptions()
 {
-	// Ceresä¼˜åŒ–å‚æ•°çš„é…ç½®
+	// CeresÓÅ»¯²ÎÊıµÄÅäÖÃ
 	ceres::Solver::Options options;
 	options.linear_solver_type = ceres::DENSE_SCHUR;
 	options.minimizer_progress_to_stdout = true;
-	options.max_num_iterations = 50; // Ceresé»˜è®¤å€¼
-	options.gradient_tolerance = 1e-10; // Ceresé»˜è®¤å€¼
-	options.function_tolerance = 1e-10; // ä»é»˜è®¤å€¼1e-6è°ƒæ•´è‡³1e-10ï¼Œå¯ä»¥å¤šè¿­ä»£å‡ æ¬¡ï¼Œè¾¾åˆ°æ›´å°çš„é‡æŠ•å½±è¯¯å·®
-	options.parameter_tolerance = 1e-8; // Ceresé»˜è®¤å€¼
+	options.max_num_iterations = 50; // CeresÄ¬ÈÏÖµ
+	options.gradient_tolerance = 1e-10; // CeresÄ¬ÈÏÖµ
+	options.function_tolerance = 1e-10; // ´ÓÄ¬ÈÏÖµ1e-6µ÷ÕûÖÁ1e-10£¬¿ÉÒÔ¶àµü´ú¼¸´Î£¬´ïµ½¸üĞ¡µÄÖØÍ¶Ó°Îó²î
+	options.parameter_tolerance = 1e-8; // CeresÄ¬ÈÏÖµ
 	return options;
 }
 
 struct ReprojectionError
 {
-	// Ceresä¼˜åŒ–æ‰€éœ€çš„functorï¼Œå®šä¹‰é‡æŠ•å½±è¯¯å·®
-	// æ„é€ å‡½æ•°
+	// CeresÓÅ»¯ËùĞèµÄfunctor£¬¶¨ÒåÖØÍ¶Ó°Îó²î
+	// ¹¹Ôìº¯Êı
 	ReprojectionError(double u, double v, double x, double y, double z) : u(u), v(v), x(x), y(y), z(z) {};
 	template <typename T>
 	bool operator()(const T* const camera, const T* const pose, T* residuals) const
 	{
-		// pose[0,1,2] æ—‹è½¬
-		// pose[3,4,5] å¹³ç§»
-		// camera[0,1] ç„¦è·
-		// camera[2,3] ä¸»ç‚¹
-		// camera[4,5,6,7,8] ç•¸å˜k1ã€k2ã€k3ã€p1ã€p2
+		// pose[0,1,2] Ğı×ª
+		// pose[3,4,5] Æ½ÒÆ
+		// camera[0,1] ½¹¾à
+		// camera[2,3] Ö÷µã
+		// camera[4,5,6,7,8] »û±äk1¡¢k2¡¢k3¡¢p1¡¢p2
 		T point[3] = { (T)x,(T)y,(T)z };
 		T p[3];
-		// åº”ç”¨æ—‹è½¬çŸ©é˜µç»™æ ‡å®šæ¿åæ ‡ç³»ä¸­çš„ç‚¹
+		// Ó¦ÓÃĞı×ª¾ØÕó¸ø±ê¶¨°å×ø±êÏµÖĞµÄµã
 		ceres::AngleAxisRotatePoint(pose, point, p);
-		// åŠ ä¸Šå¹³ç§»çŸ©é˜µï¼Œæˆä¸ºç›¸æœºåæ ‡ç³»ä¸­çš„ç‚¹
+		// ¼ÓÉÏÆ½ÒÆ¾ØÕó£¬³ÉÎªÏà»ú×ø±êÏµÖĞµÄµã
 		p[0] += pose[3];
 		p[1] += pose[4];
 		p[2] += pose[5];
@@ -351,7 +351,7 @@ struct ReprojectionError
 		const T& p1 = camera[7];
 		const T& p2 = camera[8];
 
-		// æ·»åŠ ç•¸å˜
+		// Ìí¼Ó»û±ä
 		T r2 = xp * xp + yp * yp;
 		T r4 = r2 * r2;
 		T r6 = r2 * r4;
@@ -363,11 +363,11 @@ struct ReprojectionError
 		const T& cx = camera[2];
 		const T& cy = camera[3];
 
-		// è½¬æ¢ä¸ºåƒç´ åæ ‡
+		// ×ª»»ÎªÏñËØ×ø±ê
 		T ud = fx * xd + cx;
 		T vd = fy * yd + cy;
 
-		// é‡æŠ•å½±è¯¯å·®
+		// ÖØÍ¶Ó°Îó²î
 		residuals[0] = ud - (T)u;
 		residuals[1] = vd - (T)v;
 
@@ -379,27 +379,27 @@ struct ReprojectionError
 
 void ceresCalibrate(const std::vector<std::vector<cv::Point2f>> imgPntsVec, std::vector<std::vector<cv::Point3f>>& objPntsVec, cv::Mat& K, cv::Mat& D, std::vector<cv::Mat>& rvec, std::vector<cv::Mat>& tvec)
 {
-		std::cout << "Ceresä¼˜åŒ–" << std::endl;
-		// å˜é‡camå­˜å‚¨ç›¸æœºå†…å‚
-		// cam[0,1] ç„¦è·
-		// cam[2,3] ä¸»ç‚¹
-		// cam[4,5,6,7,8] ç•¸å˜k1ã€k2ã€k3ã€p1ã€p2
+		std::cout << "CeresÓÅ»¯" << std::endl;
+		// ±äÁ¿cam´æ´¢Ïà»úÄÚ²Î
+		// cam[0,1] ½¹¾à
+		// cam[2,3] Ö÷µã
+		// cam[4,5,6,7,8] »û±äk1¡¢k2¡¢k3¡¢p1¡¢p2
 		double* cam = new double[9]();
-		// pose[0,1,2] æ—‹è½¬
-		// pose[3,4,5] å¹³ç§»
+		// pose[0,1,2] Ğı×ª
+		// pose[3,4,5] Æ½ÒÆ
 		double* pose = new double[6 * imgPntsVec.size()]();
-		// èµ‹äºˆåˆå€¼ï¼ŒKä¸ºæŒ‰ç…§å¼ æ­£å‹æ ‡å®šæ³•æ±‚è§£çš„å†…å‚ï¼ŒDä¸ºç•¸å˜
+		// ¸³Óè³õÖµ£¬KÎª°´ÕÕÕÅÕıÓÑ±ê¶¨·¨Çó½âµÄÄÚ²Î£¬DÎª»û±ä
 		cam[0] = K.at<double>(0, 0);
 		cam[1] = K.at<double>(1, 1);
 		cam[2] = K.at<double>(0, 2);
 		cam[3] = K.at<double>(1, 2);
-		// æ³¨æ„Opencvä¸­Dçš„ç•¸å˜é¡ºåºä¸ºk1ã€k2ã€p1ã€p2ã€k3ï¼Œä¸ºäº†æ–¹ä¾¿å’ŒOpenCVæ¯”è¾ƒï¼Œéœ€è¦è°ƒæ¢ä¸€ä¸‹
+		// ×¢ÒâOpencvÖĞDµÄ»û±äË³ĞòÎªk1¡¢k2¡¢p1¡¢p2¡¢k3£¬ÎªÁË·½±ãºÍOpenCV±È½Ï£¬ĞèÒªµ÷»»Ò»ÏÂ
 		cam[4] = D.at<double>(0);
 		cam[5] = D.at<double>(1);
 		cam[6] = D.at<double>(4);
 		cam[7] = D.at<double>(2);
 		cam[8] = D.at<double>(3);
-		// èµ‹äºˆåˆå€¼ï¼Œrvecå’Œtvecä¸ºå¼ æ­£å‹æ ‡å®šæ³•æ±‚è§£çš„å¤–å‚
+		// ¸³Óè³õÖµ£¬rvecºÍtvecÎªÕÅÕıÓÑ±ê¶¨·¨Çó½âµÄÍâ²Î
 		for (size_t i = 0; i < imgPntsVec.size(); ++i)
 		{
 			pose[6 * i + 0] = rvec[i].at<double>(0);
@@ -420,19 +420,19 @@ void ceresCalibrate(const std::vector<std::vector<cv::Point2f>> imgPntsVec, std:
 				double xx = objPntsVec[i][j].x;
 				double yy = objPntsVec[i][j].y;
 				double zz = objPntsVec[i][j].z;
-				// æ·»åŠ æ®‹å·®å—
+				// Ìí¼Ó²Ğ²î¿é
 				ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<ReprojectionError, 2, 9, 6>(new ReprojectionError(uu, vv, xx, yy, zz));
 				problem.AddResidualBlock(cost_function, nullptr, cam, pose + 6 * i);
 			}
 		}
-		// è®¾ç½®ä¼˜åŒ–é€‰é¡¹
+		// ÉèÖÃÓÅ»¯Ñ¡Ïî
 		ceres::Solver::Options options = setCeresOptions();
 		ceres::Solver::Summary summary;
-		// è°ƒç”¨Ceresæ±‚è§£ä¼˜åŒ–é—®é¢˜
+		// µ÷ÓÃCeresÇó½âÓÅ»¯ÎÊÌâ
 		ceres::Solve(options, &problem, &summary);
 		std::cout << summary.BriefReport() << "\n";
 
-		// ä¼˜åŒ–ç»“æœèµ‹å€¼ç»™Kã€Dã€rvecã€tvec
+		// ÓÅ»¯½á¹û¸³Öµ¸øK¡¢D¡¢rvec¡¢tvec
 		K.at<double>(0, 0) = cam[0];
 		K.at<double>(1, 1) = cam[1];
 		K.at<double>(0, 2) = cam[2];
@@ -457,18 +457,18 @@ void ceresCalibrate(const std::vector<std::vector<cv::Point2f>> imgPntsVec, std:
 
 void displayResults(const cv::Mat& K, const cv::Mat& D, const std::vector<cv::Mat>& rvec, const std::vector<cv::Mat>& tvec)
 {
-	// æ‰“å°ä¼˜åŒ–ç»“æœ
-	std::cout << "å†…å‚çŸ©é˜µ: " << std::endl << K << std::endl;
-	std::cout << "ç•¸å˜å‚æ•°: " << D << std::endl;
+	// ´òÓ¡ÓÅ»¯½á¹û
+	std::cout << "ÄÚ²Î¾ØÕó: " << std::endl << K << std::endl;
+	std::cout << "»û±ä²ÎÊı: " << D << std::endl;
 	for (size_t i = 0; i < rvec.size(); ++i)
 	{
-		std::cout << "å›¾åƒç´¢å¼•: " << i << "ï¼Œæ—‹è½¬çŸ©é˜µ: " << rvec[i].t() << "ï¼Œå¹³ç§»çŸ©é˜µ: " << tvec[i].t() << std::endl;
+		std::cout << "Í¼ÏñË÷Òı: " << i << "£¬Ğı×ª¾ØÕó: " << rvec[i].t() << "£¬Æ½ÒÆ¾ØÕó: " << tvec[i].t() << std::endl;
 	}
 }
 
 cv::Point2f project3DPoint(const cv::Point3f& p3, const cv::Mat& r, const cv::Mat& t, const cv::Mat& a, const cv::Mat& d)
 {
-	// æŒ‰ç…§ç›¸æœºæ¨¡å‹ï¼Œå°†3Dç‚¹æŠ•å½±åˆ°2Dåƒç´ åæ ‡
+	// °´ÕÕÏà»úÄ£ĞÍ£¬½«3DµãÍ¶Ó°µ½2DÏñËØ×ø±ê
 	cv::Mat p = cv::Mat(3, 1, CV_64F);
 	p.at<double>(0) = p3.x;
 	p.at<double>(1) = p3.y;
@@ -503,7 +503,7 @@ cv::Point2f project3DPoint(const cv::Point3f& p3, const cv::Mat& r, const cv::Ma
 
 void calculateReprojectionError(const std::vector<std::vector<cv::Point2f>> imgPntsVec, const std::vector<std::vector<cv::Point3f>>& objPntsVec, const cv::Mat& K, const cv::Mat& D, const std::vector<cv::Mat>& rvec, const std::vector<cv::Mat>& tvec)
 {
-	// è®¡ç®—é‡æŠ•å½±è¯¯å·®
+	// ¼ÆËãÖØÍ¶Ó°Îó²î
 	double error = 0;
 	size_t count = 0;
 	for (size_t i = 0; i < imgPntsVec.size(); ++i)
@@ -516,52 +516,52 @@ void calculateReprojectionError(const std::vector<std::vector<cv::Point2f>> imgP
 			++count;
 		}
 	}
-	std::cout << "æœ‰æ•ˆæ ‡å®šç‚¹æ•°é‡: " << count << std::endl;
+	std::cout << "ÓĞĞ§±ê¶¨µãÊıÁ¿: " << count << std::endl;
 	error /= count;
-	std::cout << "é‡æŠ•å½±è¯¯å·®: " << error << std::endl;
+	std::cout << "ÖØÍ¶Ó°Îó²î: " << error << std::endl;
 }
 
 int main()
 {
-	// å›¾ç‰‡æ–‡ä»¶å¤¹è·¯å¾„
+	// Í¼Æ¬ÎÄ¼ş¼ĞÂ·¾¶
 	std::string path = "../data";
-	// æŸ¥æ‰¾çš„å›¾ç‰‡æ ¼å¼
+	// ²éÕÒµÄÍ¼Æ¬¸ñÊ½
 	std::string pattern = "/*.png";
-	// å­˜å‚¨å›¾ç‰‡çš„vector
+	// ´æ´¢Í¼Æ¬µÄvector
 	std::vector<cv::Mat> imageData;
-	// æŸ¥æ‰¾å¹¶è¯»å–å›¾ç‰‡
+	// ²éÕÒ²¢¶ÁÈ¡Í¼Æ¬
 	readImages(path + pattern, imageData);
 
-	// æ£‹ç›˜æ ¼é•¿ã€å®½ã€å°ºåº¦
+	// ÆåÅÌ¸ñ³¤¡¢¿í¡¢³ß¶È
 	const uint width = 11;
 	const uint height = 8;
 	const double scale = 1.0;
 	std::vector<std::vector<cv::Point3f>> objectPointsVector;
 	std::vector<std::vector<cv::Point2f>> imagePointsVector;
-	// æŸ¥æ‰¾è§’ç‚¹
+	// ²éÕÒ½Çµã
 	findCorners(imageData, width, height, scale, imagePointsVector, objectPointsVector);
 
-	// è®¡ç®—å•åº”
+	// ¼ÆËãµ¥Ó¦
 	std::vector<cv::Mat> homographyVector;
 	findAllHomography(imagePointsVector, objectPointsVector, homographyVector);
 
-	// ä¼°è®¡å†…å‚
+	// ¹À¼ÆÄÚ²Î
 	cv::Mat K = cv::Mat::eye(3,3,CV_64F);
 	estimateIntrinsics(homographyVector, K);
 
-	// ä¼°è®¡å¤–å‚
+	// ¹À¼ÆÍâ²Î
 	std::vector<cv::Mat> rotationVector, translationVector;
 	estimateExtrinsics(homographyVector, K, rotationVector, translationVector);
 
-	// ç•¸å˜åˆå€¼è®¾ä¸º0
+	// »û±ä³õÖµÉèÎª0
 	cv::Mat D = cv::Mat::zeros(1, 5, CV_64F);
-	// Ceresä¼˜åŒ–æ ‡å®š
+	// CeresÓÅ»¯±ê¶¨
 	ceresCalibrate(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
 	displayResults(K, D, rotationVector, translationVector);
 	calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
 
-	// OpenCVæ ‡å®š
-	std::cout << "OpenCVæ ‡å®š" << std::endl;
+	// OpenCV±ê¶¨
+	std::cout << "OpenCV±ê¶¨" << std::endl;
 	cv::calibrateCamera(objectPointsVector, imagePointsVector, imageData[0].size(), K, D, rotationVector, translationVector);
 	displayResults(K, D, rotationVector, translationVector);
 	calculateReprojectionError(imagePointsVector, objectPointsVector, K, D, rotationVector, translationVector);
