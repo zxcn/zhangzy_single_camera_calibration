@@ -118,8 +118,9 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 }
 
 // 对点进行归一化，使求解更稳定。使用模板类接收vector<Point2f>或vector<Point3f>
+// 输出归一化的点points，及归一化矩阵N
 template<typename T>
-void normalize(T& points, cv::Mat& N)
+void normalizePoints(T& points, cv::Mat& N)
 {
 	double xmean = 0, ymean = 0, xstd = 0, ystd = 0;
 	double num = (double)points.size();
@@ -146,13 +147,13 @@ void normalize(T& points, cv::Mat& N)
 	// 点云归一化
 	for (size_t i = 0; i < points.size(); ++i)
 	{
-		points[i].x = (points[i].x - xmean) / xstd * cv::sqrt(2);
-		points[i].y = (points[i].y - ymean) / ystd * cv::sqrt(2);
+		points[i].x = (points[i].x - xmean) / xstd;
+		points[i].y = (points[i].y - ymean) / ystd;
 	}
-	N.at<double>(0, 0) = 1 / xstd * cv::sqrt(2);
-	N.at<double>(0, 2) = -xmean / xstd * cv::sqrt(2);
-	N.at<double>(1, 1) = 1 / ystd * cv::sqrt(2);
-	N.at<double>(1, 2) = -ymean / ystd * cv::sqrt(2);
+	N.at<double>(0, 0) = 1 / xstd;
+	N.at<double>(0, 2) = -xmean / xstd;
+	N.at<double>(1, 1) = 1 / ystd;
+	N.at<double>(1, 2) = -ymean / ystd;
 	//std::cout << N << std::endl;
 }
 //求解单应，带归一化
@@ -164,11 +165,11 @@ cv::Mat findHomographyWithNormalization(const std::vector<cv::Point2f>& imgPoint
 	// 物点归一化
 	std::vector<cv::Point3f> objNPnts{objPoints};
 	cv::Mat No = cv::Mat::eye(3, 3, CV_64F);
-	normalize(objNPnts, No);
+	normalizePoints(objNPnts, No);
 	// 图像点归一化
 	std::vector<cv::Point2f> imgNPnts{imgPoints};
 	cv::Mat Ni = cv::Mat::eye(3, 3, CV_64F);
-	normalize(imgNPnts, Ni);
+	normalizePoints(imgNPnts, Ni);
 
 	// 构造A矩阵，用于求解单应
 	for (size_t i = 0; i < number; ++i)
