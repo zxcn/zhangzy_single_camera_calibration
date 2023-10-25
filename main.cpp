@@ -4,7 +4,7 @@
 #include<ceres/rotation.h>
 
 // 本代码为博客【张正友标定法解析与C++代码实现】中对应的代码
-// 程序中的公式原理，可以查阅此博客
+// 程序中公式的原理，可查阅此博客
 // https://blog.csdn.net/memmolo/article/details/131741018
 
 bool readImages(const std::string& pattern, std::vector<cv::Mat>& images)
@@ -80,7 +80,7 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 	cv::Mat homo;
 	const size_t number = imgPoints.size();
 	cv::Mat A(number * 2, 9, CV_64F);
-	// 构造A矩阵，用于求解单应，参考文章公式(1)
+	// 构造A矩阵，用于求解单应，参考博客公式(1)
 	for (size_t i = 0; i < number; ++i)
 	{
 		double u = imgPoints[i].x;
@@ -148,7 +148,7 @@ void normalizePoints(T& points, cv::Mat& N)
 	ystd = cv::sqrt(ystd / num);
 	//std::cout << xstd << std::endl;
 	//std::cout << ystd << std::endl;
-	// 点云归一化，参考公式(2)
+	// 点云归一化，参考博客公式(2)
 	for (size_t i = 0; i < points.size(); ++i)
 	{
 		points[i].x = (points[i].x - xmean) / xstd;
@@ -175,7 +175,7 @@ cv::Mat findHomographyWithNormalization(const std::vector<cv::Point2f>& imgPoint
 	cv::Mat Ni = cv::Mat::eye(3, 3, CV_64F);
 	normalizePoints(imgNPnts, Ni);
 
-	// 构造A矩阵，用于求解单应，参考公式(1)
+	// 构造A矩阵，用于求解单应，参考博客公式(1)
 	for (size_t i = 0; i < number; ++i)
 	{
 		double u = imgNPnts[i].x;
@@ -206,7 +206,7 @@ cv::Mat findHomographyWithNormalization(const std::vector<cv::Point2f>& imgPoint
 	// 求解Ax=0
 	cv::SVD::solveZ(A, homo);
 	homo = homo.reshape(0, 3);
-	// 参考公式(3)
+	// 参考博客公式(3)
 	homo = Ni.inv() * homo * No;
 	// 单应矩阵的处理，保持最后一个元素为1，或者为正值。
 	homo = homo / homo.at<double>(8);
@@ -228,7 +228,7 @@ void findAllHomography(const std::vector<std::vector<cv::Point2f>>& imgPntsVec, 
 void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 {
 	cv::Mat A(homoVec.size() * 2, 5, CV_64F);
-	// 构造Ax=0的A矩阵，参考公式(4)
+	// 构造Ax=0的A矩阵，参考博客公式(4)
 	for (int i = 0; i < homoVec.size(); ++i)
 	{
 		double h11 = homoVec[i].at<double>(0, 0);
@@ -260,7 +260,7 @@ void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 	double B13 = B.at<double>(2);
 	double B23 = B.at<double>(3);
 	double B33 = B.at<double>(4);
-	// 从B矩阵恢复内参，假定skewness为零，参考公式(5)
+	// 从B矩阵恢复内参，假定skewness为零，参考博客公式(5)
 	double cx = -B13 / B11;
 	double cy = -B23 / B22;
 	double lmd = B33 - (B13 * B13 / B11 + B23 * B23 / B22);
@@ -281,7 +281,7 @@ void estimateExtrinsics(const std::vector<cv::Mat>& homoVec, const cv::Mat& K, s
 	cv::Mat invK = K.inv();
 	for (int i = 0; i < homoVec.size(); ++i)
 	{
-		// 求解外参，rrt=[r1, r2, t]，参考公式(6)
+		// 求解外参，rrt=[r1, r2, t]，参考博客公式(6)
 		cv::Mat rrt = invK * homoVec[i];
 		double lmd = (norm(rrt.col(0)) + norm(rrt.col(1))) / 2;
 		rrt = rrt / lmd;
@@ -300,7 +300,7 @@ void estimateExtrinsics(const std::vector<cv::Mat>& homoVec, const cv::Mat& K, s
 		R.at<double>(1, 2) = r3.at<double>(1);
 		R.at<double>(2, 2) = r3.at<double>(2);
 
-		// SVD分解，找到符合约束的旋转矩阵，参考公式(7)
+		// SVD分解，找到符合约束的旋转矩阵，参考博客公式(7)
 		cv::Mat U, W, VT;
 		cv::SVD::compute(R, W, U, VT);
 		R = U * VT;
