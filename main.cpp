@@ -3,6 +3,10 @@
 #include<ceres/ceres.h>
 #include<ceres/rotation.h>
 
+// 本代码为博客【张正友标定法解析与C++代码实现】中对应的代码
+// 程序中的公式原理，可以查阅此博客
+// https://blog.csdn.net/memmolo/article/details/131741018
+
 bool readImages(const std::string& pattern, std::vector<cv::Mat>& images)
 {
 	// 查找路径下所有png图片，非递归。
@@ -76,7 +80,7 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 	cv::Mat homo;
 	const size_t number = imgPoints.size();
 	cv::Mat A(number * 2, 9, CV_64F);
-	// 构造A矩阵，用于求解单应
+	// 构造A矩阵，用于求解单应，参考文章公式(1)
 	for (size_t i = 0; i < number; ++i)
 	{
 		double u = imgPoints[i].x;
@@ -107,7 +111,7 @@ cv::Mat findHomography(const std::vector<cv::Point2f>& imgPoints, const std::vec
 	// 求解Ax=0
 	cv::SVD::solveZ(A, homo);
 	//std::cout << "单应矩阵：" << homo.t() << std::endl;
-	// 单应矩阵的处理，保持最后一个元素为1（或者为正）
+	// 单应矩阵的处理，保持最后一个元素为1
 	homo = homo / homo.at<double>(8);
 	// 单应矩阵的处理，保持最后一个元素为正，意味着标定板原点在相机前方。
 	//if (homo.at<double>(8) < 0)
@@ -144,7 +148,7 @@ void normalizePoints(T& points, cv::Mat& N)
 	ystd = cv::sqrt(ystd / num);
 	//std::cout << xstd << std::endl;
 	//std::cout << ystd << std::endl;
-	// 点云归一化
+	// 点云归一化，参考公式(2)
 	for (size_t i = 0; i < points.size(); ++i)
 	{
 		points[i].x = (points[i].x - xmean) / xstd;
@@ -171,7 +175,7 @@ cv::Mat findHomographyWithNormalization(const std::vector<cv::Point2f>& imgPoint
 	cv::Mat Ni = cv::Mat::eye(3, 3, CV_64F);
 	normalizePoints(imgNPnts, Ni);
 
-	// 构造A矩阵，用于求解单应
+	// 构造A矩阵，用于求解单应，参考公式(1)
 	for (size_t i = 0; i < number; ++i)
 	{
 		double u = imgNPnts[i].x;
@@ -202,6 +206,7 @@ cv::Mat findHomographyWithNormalization(const std::vector<cv::Point2f>& imgPoint
 	// 求解Ax=0
 	cv::SVD::solveZ(A, homo);
 	homo = homo.reshape(0, 3);
+	// 参考公式(3)
 	homo = Ni.inv() * homo * No;
 	// 单应矩阵的处理，保持最后一个元素为1，或者为正值。
 	homo = homo / homo.at<double>(8);
@@ -214,6 +219,7 @@ void findAllHomography(const std::vector<std::vector<cv::Point2f>>& imgPntsVec, 
 	// 找到所有图像的单应矩阵
 	for (size_t i = 0; i < imgPntsVec.size(); ++i)
 	{
+		// 使用了带归一化的单应矩阵求解
 		homoVec.push_back(findHomographyWithNormalization(imgPntsVec[i], objPntsVec[i]));
 		//homoVec.push_back(findHomography(imgPntsVec[i], objPntsVec[i]));
 	}
@@ -221,8 +227,8 @@ void findAllHomography(const std::vector<std::vector<cv::Point2f>>& imgPntsVec, 
 
 void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 {
-	cv::Mat v(homoVec.size() * 2, 5, CV_64F);
-	// 给矩阵元素赋值
+	cv::Mat A(homoVec.size() * 2, 5, CV_64F);
+	// 构造Ax=0的A矩阵，参考公式(4)
 	for (int i = 0; i < homoVec.size(); ++i)
 	{
 		double h11 = homoVec[i].at<double>(0, 0);
@@ -232,21 +238,21 @@ void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 		double h22 = homoVec[i].at<double>(1, 1);
 		double h32 = homoVec[i].at<double>(2, 1);
 
-		v.at<double>(i * 2, 0) = h11 * h12;
-		v.at<double>(i * 2, 1) = h21 * h22;
-		v.at<double>(i * 2, 2) = h31 * h12 + h11 * h32;
-		v.at<double>(i * 2, 3) = h31 * h22 + h21 * h32;
-		v.at<double>(i * 2, 4) = h31 * h32;
+		A.at<double>(i * 2, 0) = h11 * h12;
+		A.at<double>(i * 2, 1) = h21 * h22;
+		A.at<double>(i * 2, 2) = h31 * h12 + h11 * h32;
+		A.at<double>(i * 2, 3) = h31 * h22 + h21 * h32;
+		A.at<double>(i * 2, 4) = h31 * h32;
 
-		v.at<double>(i * 2 + 1, 0) = h11 * h11 - h12 * h12;
-		v.at<double>(i * 2 + 1, 1) = h21 * h21 - h22 * h22;
-		v.at<double>(i * 2 + 1, 2) = 2 * h11 * h31 - 2 * h12 * h32;
-		v.at<double>(i * 2 + 1, 3) = 2 * h21 * h31 - 2 * h22 * h32;
-		v.at<double>(i * 2 + 1, 4) = h31 * h31 - h32 * h32;
+		A.at<double>(i * 2 + 1, 0) = h11 * h11 - h12 * h12;
+		A.at<double>(i * 2 + 1, 1) = h21 * h21 - h22 * h22;
+		A.at<double>(i * 2 + 1, 2) = 2 * h11 * h31 - 2 * h12 * h32;
+		A.at<double>(i * 2 + 1, 3) = 2 * h21 * h31 - 2 * h22 * h32;
+		A.at<double>(i * 2 + 1, 4) = h31 * h31 - h32 * h32;
 	}
 	// 求解B矩阵，同样是Ax=0问题
 	cv::Mat B;
-	cv::SVD::solveZ(v, B);
+	cv::SVD::solveZ(A, B);
 	std::cout << "B:" << B.t() << std::endl;
 
 	double B11 = B.at<double>(0);
@@ -254,7 +260,7 @@ void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 	double B13 = B.at<double>(2);
 	double B23 = B.at<double>(3);
 	double B33 = B.at<double>(4);
-	// 从B矩阵恢复内参，假定skewness为零
+	// 从B矩阵恢复内参，假定skewness为零，参考公式(5)
 	double cx = -B13 / B11;
 	double cy = -B23 / B22;
 	double lmd = B33 - (B13 * B13 / B11 + B23 * B23 / B22);
@@ -275,6 +281,7 @@ void estimateExtrinsics(const std::vector<cv::Mat>& homoVec, const cv::Mat& K, s
 	cv::Mat invK = K.inv();
 	for (int i = 0; i < homoVec.size(); ++i)
 	{
+		// 求解外参，rrt=[r1, r2, t]，参考公式(6)
 		cv::Mat rrt = invK * homoVec[i];
 		double lmd = (norm(rrt.col(0)) + norm(rrt.col(1))) / 2;
 		rrt = rrt / lmd;
@@ -293,14 +300,14 @@ void estimateExtrinsics(const std::vector<cv::Mat>& homoVec, const cv::Mat& K, s
 		R.at<double>(1, 2) = r3.at<double>(1);
 		R.at<double>(2, 2) = r3.at<double>(2);
 
-		// SVD分解，找到符合约束的旋转矩阵
+		// SVD分解，找到符合约束的旋转矩阵，参考公式(7)
 		cv::Mat U, W, VT;
 		cv::SVD::compute(R, W, U, VT);
 		R = U * VT;
 		// 旋转矩阵转轴角
-		cv::Mat aa;
-		cv::Rodrigues(R, aa);
-		rvec.push_back(aa);
+		cv::Mat axisangle;
+		cv::Rodrigues(R, axisangle);
+		rvec.push_back(axisangle);
 		tvec.push_back(t);
 		//std::cout << "r: " << aa.t() << std::endl;
 		//std::cout << "t: " << t.t() << std::endl;
@@ -426,6 +433,10 @@ void ceresCalibrate(const std::vector<std::vector<cv::Point2f>> imgPntsVec, std:
 				problem.AddResidualBlock(cost_function, nullptr, cam, pose + 6 * i);
 			}
 		}
+
+		// SetParameterBlockConstant()可以固定某个优化参数，如固定内参只优化外参
+		//problem.SetParameterBlockConstant(cam);
+
 		// 设置优化选项
 		ceres::Solver::Options options = setCeresOptions();
 		ceres::Solver::Summary summary;
@@ -513,7 +524,7 @@ void calculateReprojectionError(const std::vector<std::vector<cv::Point2f>> imgP
 		{
 			cv::Point2f prjpnt = project3DPoint(objPntsVec[i][j], rvec[i], tvec[i], K, D);
 			const cv::Point2f imgpnt = imgPntsVec[i][j];
-			error += sqrt((imgpnt.x - prjpnt.x) * (imgpnt.x - prjpnt.x) + (imgpnt.y - prjpnt.y) * (imgpnt.y - prjpnt.y));
+			error += std::sqrt((imgpnt.x - prjpnt.x) * (imgpnt.x - prjpnt.x) + (imgpnt.y - prjpnt.y) * (imgpnt.y - prjpnt.y));
 			++count;
 		}
 	}
@@ -536,7 +547,7 @@ int main()
 	// 棋盘格长、宽、尺度
 	const uint width = 11;
 	const uint height = 8;
-	const double scale = 1.0;
+	const double scale = 20; // millimeter
 	std::vector<std::vector<cv::Point3f>> objectPointsVector;
 	std::vector<std::vector<cv::Point2f>> imagePointsVector;
 	// 查找角点
