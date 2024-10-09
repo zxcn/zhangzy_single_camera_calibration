@@ -45,7 +45,7 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 	}
 
 	size_t count = 0;
-	for (uint i = 0; i < images.size(); ++i)
+	for (size_t i = 0; i < images.size(); ++i)
 	{
 		// 调用OpenCV查找棋盘格角点，findChessboardCornersSB是能够直接获取棋盘格角点亚像素坐标的函数。
 		bool found = cv::findChessboardCornersSB(images[i], cv::Size(w, h), imgPoints, 0);
@@ -229,7 +229,7 @@ void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 {
 	cv::Mat A(homoVec.size() * 2, 5, CV_64F);
 	// 构造Ax=0的A矩阵，参考博客公式(4)
-	for (int i = 0; i < homoVec.size(); ++i)
+	for (size_t i = 0; i < homoVec.size(); ++i)
 	{
 		double h11 = homoVec[i].at<double>(0, 0);
 		double h21 = homoVec[i].at<double>(1, 0);
@@ -279,7 +279,7 @@ void estimateIntrinsics(const std::vector<cv::Mat>& homoVec, cv::Mat K)
 void estimateExtrinsics(const std::vector<cv::Mat>& homoVec, const cv::Mat& K, std::vector<cv::Mat>& rvec, std::vector<cv::Mat>& tvec)
 {
 	cv::Mat invK = K.inv();
-	for (int i = 0; i < homoVec.size(); ++i)
+	for (size_t i = 0; i < homoVec.size(); ++i)
 	{
 		// 求解外参，rrt=[r1, r2, t]，参考博客公式(6)
 		cv::Mat rrt = invK * homoVec[i];
