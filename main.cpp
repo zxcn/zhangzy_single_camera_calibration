@@ -40,7 +40,7 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 	{
 		for (size_t j = 0; j < w; ++j)
 		{
-			objPoints.push_back(cv::Point3f(i * scale, j * scale, 0));
+			objPoints.push_back(cv::Point3f(j * scale, i * scale, 0));
 		}
 	}
 
@@ -55,11 +55,11 @@ bool findCorners(const std::vector<cv::Mat>& images, const uint& w, const uint& 
 			objPntsVec.push_back(objPoints);
 			count++;
 			// 显示棋盘格检测结果
-			//cv::namedWindow("查找到的角点");
-			//cv::drawChessboardCorners(images[i], cv::Size(w, h), imgPoints, true);
-			//cv::imshow("查找到的角点",images[i]);
-			//cv::waitKey();
-			//cv::destroyWindow("查找到的角点");
+			cv::namedWindow("查找到的角点");
+			cv::drawChessboardCorners(images[i], cv::Size(w, h), imgPoints, true);
+			cv::imshow("查找到的角点",images[i]);
+			cv::waitKey();
+			cv::destroyWindow("查找到的角点");
 		}
 	}
 
